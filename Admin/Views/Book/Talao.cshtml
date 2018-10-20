@@ -1,0 +1,345 @@
+﻿@model Domain.ModelView.TalaoModelView
+
+
+@section Scripts {
+
+    <script type="text/javascript">
+
+        //load
+
+        $(document).ready(function () {
+            var idTalao = $("#talaoid").val();
+
+            if (idTalao != 0) {
+                //não é permitido editar o intervalo e nem o representante.
+                // se alterar o status os Taloes filhos tb são alterados.
+                $("#ini").prop('disabled', true);
+                $("#ini").css({ "color": "#b4b4b4", "background-color": "#f7f7f7" });
+
+                $("#fin").prop('disabled', true);
+                $("#fin").css({ "color": "#b4b4b4", "background-color": "#f7f7f7" });
+
+                $("#representanteid").css({ "color": "#b4b4b4", "background-color": "#f7f7f7" });
+                $('#obmsg').html("IMPORTANTE: Uma alteração de status (ativo/inativo) nesta tela, afeta todos os números deste intervalo!");
+
+            }
+
+            var id = $("#repreid").val();
+            if (id == 0) {
+                $("#divrepre").css("display", "");
+            }
+
+
+        });
+
+
+        $("#statusb").change(function () {
+            var stmsg = "Inativados";
+            if ($("#statusb").prop("checked") == true) {
+                stmsg = "Ativados";
+            }
+            var idTalao = $("#talaoid").val();
+
+            if (idTalao != 0) {
+                $('#obmsg').html("ATENÇÃO. Todos os Talões desta númeração serão <strong>" + stmsg + "</strong>!");
+            }
+
+        });
+
+        //*****************
+        //valida o form
+        $(document).submit(function (e) {
+            var valido = true;
+
+            $('input:visible, select:visible').each(function () {
+                var $this = $(this);
+                var namect = $this.attr('name'); //pega o controle
+                var ct = namect.toLowerCase();
+
+                vl = $("#" + ct).val();
+
+
+                // o final precisa ser maior que o inicio
+                var vini = $("#ini").val();
+                var vfin = $("#fin").val();
+
+                if (parseInt(vfin) <= parseInt(vini)) {
+                    $('#obmsg').html("O Número Final precisa ser maior que o Inicial!");
+                    $("#fin").focus();
+                    valido = false;
+                }
+
+
+                if (ct == "fin" & vl == "0") {
+                    //se é vazio, verifica se é obrigatório
+                    $("#" + ct).css({ "border-color": "red", "border-width": "1px", "border-style": "solid" });
+                    //$("#obmsg").css('visibility', 'visible');
+                    $('#obmsg').html("Por favor informe os campos obrigatórios!");
+                    $("#" + ct).focus();
+                    valido = false;
+                }
+                else {
+                    $("#" + ct).css({ "border-color": "#E2E2E2", "border-width": "1px", "border-style": "solid" });
+                }
+
+
+                //verifica somente quando é categoriaid e está com zero.
+                if (ct == "ini" & vl == "0") {
+                    //se é vazio, verifica se é obrigatório
+                    $("#" + ct).css({ "border-color": "red", "border-width": "1px", "border-style": "solid" });
+                    //$("#obmsg").css('visibility', 'visible');
+                    $('#obmsg').html("Por favor informe os campos obrigatórios!");
+                    $("#" + ct).focus();
+                    valido = false;
+                }
+                else {
+                    $("#" + ct).css({ "border-color": "#E2E2E2", "border-width": "1px", "border-style": "solid" });
+                }
+
+
+                //verifica somente quando é categoriaid e está com zero.
+                //if (ct == "representanteid" & vl == "0") {
+                //    //se é vazio, verifica se é obrigatório
+                //    $("#" + ct).css({ "border-color": "red", "border-width": "1px", "border-style": "solid" });
+                //    //$("#obmsg").css('visibility', 'visible');
+                //    $('#obmsg').html("Por favor informe os campos obrigatórios!");
+                //    $("#" + ct).focus();
+                //    valido = false;
+                //}
+                //else {
+                //    $("#" + ct).css({ "border-color": "#E2E2E2", "border-width": "1px", "border-style": "solid" });
+                //}
+
+            })
+
+
+
+            if (!valido) {
+                $("#obmsg").css('visibility', 'visible');
+                e.preventDefault();
+                return false;
+            }
+            else {
+                $("#obmsg").css('visibility', 'hidden');
+            }
+
+        });
+
+        $("#fin").change(function () {
+            getIntervalo();
+        });
+
+
+        $("#ini").change(function () {
+            getIntervalo();
+        });
+
+        function getIntervalo() {
+
+            var repreid = vl = $("#representanteid").val();
+            var ini = vl = $("#ini").val();
+            var fin = vl = $("#fin").val();
+
+            if (repreid != "0" & ini != "0" & fin != "0") {
+                $.getJSON('@Url.Action("GetIntervalo/")' + repreid + "/" + ini + "/" + fin, getIntervaloCallBack);
+            }
+        }
+
+
+        function getIntervaloCallBack(json) {
+            if (json != "") {
+                var msg = json.replace(/\-/g, ' ') + ". Por favor verifique.";
+                $('#obmsg').html(msg);
+                $("#obmsg").css('visibility', 'visible');
+            }
+
+        }
+
+
+        //$("#representanteid").change(function () {
+        //    getTaloes($(this).val());
+        //});
+
+        function getTaloes(repreid) {
+            $.getJSON('@Url.Action("GetTaloes/")' + repreid, getTaloesCallBack);
+        }
+
+
+        //função que irá ser chamada quando terminar
+        //a chamada ajax
+        //função que irá ser chamada quando terminar
+        //a chamada ajax
+        function getTaloesCallBack(json) {
+            var i = 0;
+            var st = "Inativo";
+            $("#ajax").find("tr:gt(0)").remove();
+            $.each(json, function (key, data) {
+                $(function () {
+
+                    st = "Inativo";
+
+                    if (data.Status == 1) {
+                        st = "Ativo";
+                    }
+                    i += 1;
+                    var index = 1;
+                    newRow = "<tr id='trajax' class='tablelist int'>" +
+                        "<td class='minimo'>" + data.talaoid + "</td>" +
+                        "<td class='minimo'>" + data.ini + "</td>" +
+                        "<td class='pequeno'>" + data.fin + "</td>" +
+                        "<td class='ico'><img src='@Domain.Util.config.UrlImg/icone/ico-" + st + "-.png' width='18' title='" + st + "'></td>" +
+                        "<td class='ico'><a href='@Domain.Util.config.UrlSite/Book/Talao/" + data.representanteid + "/" + data.talaoid + "'><img src='@Domain.Util.config.UrlImg/icone/ico-edit.png' width='30' alt='Editar'></a> </td>" +
+                        "<td class='ico'><a href='@Domain.Util.config.UrlSite/BookItens/TalaoItens/" + data.representanteid + "/" + data.talaoid + "'><img src='@Domain.Util.config.UrlImg/icone/ico-open.png' width='30' alt='Detalhar'></a> </td>" +
+                        "</tr>";
+                    $('#ajax > tbody > tr:last').eq(index - 1).after(newRow);
+                });
+            })
+        }
+    </script>
+}
+
+
+@{
+    ViewBag.Title = "RepreSis";
+}
+<div id="submenu_tab">
+    <a href="@Domain.Util.config.UrlSite/Book/Talao" class="btn btn-sm btn-default btn-flat">Talao </a>
+</div>
+
+
+@using (Html.BeginForm("Talao", "Book", FormMethod.Post))
+{
+    @Html.AntiForgeryToken()
+    @Html.ValidationSummary(true)
+
+
+    <div class="main-content">
+        <h2>Adicionar Talao</h2>
+
+        <div id="obmsg" class="msg-alerta"></div>
+
+        <div style="color: #ff6a00; font-size: large; padding: 20px 20px 20px 20px;">
+            @ViewBag.erro
+        </div>
+        <div id="divrepre" style="display: none">
+            <div class="editor-label">
+                @Html.LabelFor(model => model.Representantes)
+            </div>
+            <div class="inputgrande">
+                @Html.DropDownListFor(x => x.representanteid, new SelectList(Model.Representantes, "representanteid", "nome"))
+                @Html.ValidationMessageFor(model => model.representanteid)
+            </div>
+        </div>
+        <div id="bedit">
+            <div class="editor-label">
+                @Html.LabelFor(model => model.ini)
+            </div>
+            <div class="inputgrande">
+                @Html.TextBoxFor(model => model.ini)
+                @Html.ValidationMessageFor(model => model.ini, String.Empty, new { style = "color:red;font-size:12px!important" })
+            </div>
+            <div class="editor-label">
+                @Html.LabelFor(model => model.fin)
+            </div>
+            <div class="inputgrande">
+                @Html.TextBoxFor(model => model.fin)
+                @Html.ValidationMessageFor(model => model.fin, String.Empty, new { style = "color:red;font-size:12px!important" })
+            </div>
+        </div>
+        <div class="editor-label">
+            @Html.LabelFor(model => model.obs)
+        </div>
+        <div class="inputgrande">
+            @Html.TextAreaFor(model => model.obs)
+            @Html.ValidationMessageFor(model => model.obs)
+        </div>
+
+
+        <div class="editor-label">
+            Ativo
+        </div>
+        <div class="inputgrande">
+            @if (Model.status == 1 | Model.talaoid == 0)
+            {
+                Model.statusb = true;
+            }
+            else
+            {
+                Model.statusb = false;
+            }
+            @Html.CheckBoxFor(model => model.statusb)
+            @Html.ValidationMessageFor(model => model.status)
+        </div>
+        <p>&nbsp;</p>
+        <table>
+            <tr>
+                <td>
+                    <button name="button" class="botao01" value="register">Salvar</button>
+                    @Html.Hidden("talaoid", Model.talaoid)
+                    @Html.Hidden("dataincl", Model.dataincl)
+                    <input id="repreid" value="@ViewBag.repreid" type="hidden" />
+                </td>
+            </tr>
+        </table>
+    </div>
+    <p>&nbsp;</p>
+    <div class="row">
+        <!-- Left col -->
+        <div class="col-md-12">
+            <!-- TABLE: LATEST ORDERS -->
+            <div class="box box-info">
+                <div class="box-header with-border">
+                    <h3 class="box-title">Cadastros</h3>
+                    <div class="box-tools pull-right">@Model.Taloes.Count registro(s) listado(s)</div>
+                </div>
+                <!-- /.box-header -->
+                <div class="box-body">
+                    <div class="table-responsive">
+                        <table class="table no-margin" id="ajax">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Inicial</th>
+                                    <th>Final</th>
+                                    <th>Representante</th>
+                                    <th class="ico">Status</th>
+                                    <th class="ico">Editar</th>
+                                    <th class="ico">Números</th>
+                                </tr>
+                            </thead>
+                            @{
+            var st = "Inativo";
+                            }
+                            @if (Model.Taloes != null)
+                            {
+                                foreach (var item in Model.Taloes)
+                                {
+                                    st = "Inativo";
+
+                                    if (item.Status == 1)
+                                    {
+                                        st = "Ativo";
+                                    }
+                        
+                                <tr id="sumir" style="visibility: visible">
+                                    <td class="minimo">@item.talaoid</td>
+                                    <td class="pequeno">@item.ini</td>
+                                    <td class="pequeno">@item.fin</td>
+                                    <td class="pequeno">@item.Representante.Nome</td>
+                                    <td class="ico">
+                                        <img src="@Domain.Util.config.UrlImg/icone/ico-@st-.png" width="18" title="@st"></td>
+                                    <td class="ico"><a href="@Domain.Util.config.UrlSite/Book/Talao/@item.representanteid/@item.ini">
+                                        <img src="@Domain.Util.config.UrlImg/icone/ico-edit.png" title="Editar" width="30" /></a></td>
+                                    <td class="ico"><a href="@Domain.Util.config.UrlSite/BookItens/TalaoItens/@item.representanteid/@item.talaoid">
+                                        <img src="@Domain.Util.config.UrlImg/icone/ico-open.png" title="Detalhar" width="30" /></a></td>
+                                </tr>
+                                }
+                            }
+                        </table>
+                    </div>
+                </div>
+                <div class="box-footer clearfix">&nbsp;</div>
+            </div>
+        </div>
+    </div>
+}
